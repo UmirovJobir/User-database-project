@@ -4,13 +4,16 @@ from .views import (
   UserDetail,
   RegisterUserAPIView,
   DocumentsView,
-  AddDocView
+  AddDocView,
+  DocumentsDetailView
   )
 
 urlpatterns = [
-  path("user", UserDetail.as_view()),
-  path("get-details/",UserDetail.as_view()),
   path('register/',RegisterUserAPIView.as_view()),
+  path("users", UserDetail.as_view()),
   path('document/', DocumentsView.as_view()),
+  path('document/<int:pk>/', DocumentsDetailView.as_view()),
+  path('add_doc/', AddDocView.as_view()),
+
   path('drf-auth/', include('rest_framework.urls')),
 ]

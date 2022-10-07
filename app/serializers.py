@@ -1,6 +1,8 @@
 
 from pyexpat import model
+from urllib import request
 from rest_framework import serializers
+from rest_framework.serializers import CurrentUserDefault
 from .models import User, Document, Additional_document
 from rest_framework.response import Response
 from rest_framework import status
@@ -16,29 +18,49 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
   class Meta:
       model = User
-      fields = ('username', 'password','email', 'first_name', 'last_name',"photo")
+      fields = ('username', 'password','email',"photo")
 
   def create(self, validated_data):
       user = User.objects.create(
         username=validated_data['username'],
         password=validated_data['password'],
         email=validated_data['email'],
-        first_name=validated_data['first_name'],
-        last_name=validated_data['last_name'],
         photo = validated_data["photo"]
       )
       user.set_password(validated_data['password'])
       user.save()
       return user
 
-
-class DocumentSerializer(serializers.ModelSerializer):
+class DocumentGetSerializer(serializers.ModelSerializer):
   class Meta:
     model = Document
-    fields = ('user',"passport",'CV','military_ID','reference','diplom','driving_license')
-    # fields = ('__all__')
+    fields = ('id','user', "passport",'CV','military_ID','reference','diplom','driving_license')
 
-class AddDocSerializer(serializers.ModelSerializer):
+class DocumentPostSerializer(serializers.ModelSerializer):
+  user = serializers.HiddenField(default=CurrentUserDefault())
+  class Meta:
+    model = Document
+    fields = ('user', "passport",'CV','military_ID','reference','diplom','driving_license')
+  
+  # def create(self, validated_data): 
+  #       document = Document.objects.create( 
+  #         passport=validated_data['passport'],
+  #         CV=validated_data['CV'],
+  #         military_ID=validated_data['military_ID'],
+  #         reference=validated_data['reference'],
+  #         diplom=validated_data['diplom'],
+  #         driving_license=validated_data['driving_license']
+  #       )
+  #       document.save()
+  #       return document
+
+class AddDocGetSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = Additional_document
+    fields = ('id', 'user', 'title', 'file')
+
+class AddDocPostSerializer(serializers.ModelSerializer):
+  user = serializers.HiddenField(default=CurrentUserDefault())
   class Meta:
     model = Additional_document
     fields = ('user', 'title', 'file')

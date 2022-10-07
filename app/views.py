@@ -1,20 +1,22 @@
-from telnetlib import DO
 from django.shortcuts import render
 
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticatedOrReadOnly
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .serializers import (
+  AddDocGetSerializer,
   UserSerializer,
   RegisterSerializer, 
-  DocumentSerializer, 
-  AddDocSerializer
+  DocumentGetSerializer,
+  DocumentPostSerializer,
+  AddDocPostSerializer,
+  AddDocGetSerializer
 )
 from rest_framework.authentication import TokenAuthentication
 from rest_framework import generics, permissions, parsers, status
 from .permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
 from .models import User, Document, Additional_document
-from app import serializers
+from django.http import Http404
 
 
 class UserDetail(generics.ListAPIView):
@@ -26,41 +28,90 @@ class RegisterUserAPIView(generics.CreateAPIView):
   permission_classes = (AllowAny,)
   serializer_class = RegisterSerializer
 
-class DocumentsView(APIView):
-  permission_classes = (IsAuthenticatedOrReadOnly,)
-  parser_classes = (parsers.FileUploadParser,)
 
-  def get(self, request, ):
+
+
+class DocumentsView(APIView):
+  def get(self, request):
     documents = Document.objects.all()
-    serializer = DocumentSerializer(documents, many=True)
-    print(serializer.data)
+    serializer = DocumentGetSerializer(documents, many=True)
     return Response(serializer.data)
 
-  def post(self, request, *args, **kwargs):
-      print(request.data)
-      f = request.data['file']
-      print(f)
-      # serializer = DocumentSerializer(data=request.FILES)
-      # print(serializer.is_valid())
-      # if serializer.is_valid():
-      #   serializer.save()
-      #   return Response(serializer.data)
+  def post(self, request):
+      serializer = DocumentPostSerializer(data=request.data, context={'request': request})
+      if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class DocumentsDetailView(APIView):
+    permission_classes = (IsOwnerOrReadOnly,)
+
+    def get_object(self, pk):
+          try:
+              return Document.objects.get(pk=pk)
+          except Document.DoesNotExist:
+              raise Http404
+
+    def get(self, request, pk, format=None):
+          document = self.get_object(pk)
+          serializer = DocumentGetSerializer(document)
+          return Response(serializer.data)
+
+    def put(self, request, pk, format=None):
+          print(request.user.id)
+          document = self.get_object(pk)
+          serializer = DocumentPostSerializer(document, data=request.data, context={'request': request}, partial=True)
+          if serializer.is_valid():
+              serializer.save()
+              return Response(serializer.data)
+          return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+          document = self.get_object(pk)
+          document.delete()
+          return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class AddDocView(APIView):
-  # serializer_class = AddDocSerializer
-  def get(self, request, *args, **kwargs):
-    print(request.user)
-    documents = Add.objects.all()
-    print(documents)
-    serializer = AddDocSerializer(documents)
-    print(serializer.data)
-    return Response({"status":"done"})
+    def get(self, request):
+      documents = Additional_document.objects.all()
+      serializer = AddDocGetSerializer(documents, many=True)
+      return Response(serializer.data)
+
+    def post(self, request):
+        serializer = AddDocPostSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+          serializer.save()
+          return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# class AddDocView(generics.ListAPIView):
-#   serializer_class = AddDocGetSerializer
-#   queryset = Additional_documents.objects.all()
+class AddDocDetailView(APIView):
+    permission_classes = (IsOwnerOrReadOnly,)
+    def get_object(self, pk):
+          try:
+              return Additional_document.objects.get(pk=pk)
+          except Document.DoesNotExist:
+              raise Http404
+
+    def get(self, request, pk, format=None):
+          document = self.get_object(pk)
+          serializer = AddDocGetSerializer(document)
+          return Response(serializer.data)
+
+    def put(self, request, pk, format=None):
+          document = self.get_object(pk)
+          serializer = AddDocPostSerializer(document, data=request.data, context={'request': request}, partial=True)
+          if serializer.is_valid():
+              serializer.save()
+              return Response(serializer.data)
+          return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+          document = self.get_object(pk)
+          document.delete()
+          return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 
